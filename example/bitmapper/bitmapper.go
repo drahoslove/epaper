@@ -1,4 +1,4 @@
-package bitmapper
+package main
 
 // sudo GOPATH=/home/pi/go /usr/local/go/bin/go test -v
 
