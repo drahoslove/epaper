@@ -3,7 +3,7 @@ package epaper
 import (
 	"bytes"
 	"fmt"
-	"github.com/drahoslav7/epaper/model"
+	"github.com/drahoslav7/epaper/spec"
 	"github.com/stianeikeland/go-rpio"
 	"math/rand"
 	"os"
@@ -44,16 +44,16 @@ func init() {
 }
 
 var (
-	lut model.Lut
-	cmd model.Cmd
-	res model.Res
-	ink model.Ink
+	lut spec.Lut
+	cmd spec.Cmd
+	dim spec.Dim
+	ink spec.Ink
 ) // global vars holding used values, fill in with Use
 
-func Use(e model.Model) {
+func Use(e spec.Module) {
 	lut = e.Lut
 	cmd = e.Cmd
-	res = e.Res
+	dim = e.Dim
 	ink = e.Ink
 }
 
@@ -61,8 +61,8 @@ func Init(update string) {
 	Reset()
 	SendCommand(cmd.DRIVER_OUTPUT_CONTROL)
 	SendData(
-		byte((res.HEIGHT-1)&0xFF),
-		byte((res.HEIGHT-1)>>8),
+		byte((dim.HEIGHT-1)&0xFF),
+		byte((dim.HEIGHT-1)>>8),
 		0x00, // GD = 0; SM = 0; TB = 0;
 	)
 	SendCommand(cmd.BOOSTER_SOFT_START_CONTROL)
@@ -113,59 +113,55 @@ func SetLut(lut []byte) {
 }
 
 func ClearFrame(color byte) {
-	SetMemoryArea(0, 0, res.WIDTH-1, res.HEIGHT-1)
+	SetMemoryArea(0, 0, dim.WIDTH-1, dim.HEIGHT-1)
 	SetMemoryPointer(0, 0)
 	SendCommand(cmd.WRITE_RAM)
 	/* send the color data */
-	var img = bytes.Repeat([]byte{color}, res.WIDTH/8*res.HEIGHT)
+	var img = bytes.Repeat([]byte{color}, int(dim.WIDTH/8*dim.HEIGHT))
 	SendData(img...)
 }
 
 func RandomizeFrame() {
-	SetMemoryArea(0, 0, res.WIDTH-1, res.HEIGHT-1)
+	SetMemoryArea(0, 0, dim.WIDTH-1, dim.HEIGHT-1)
 	SetMemoryPointer(0, 0)
 	SendCommand(cmd.WRITE_RAM)
 	/* send the color data */
-	var img = make([]byte, res.WIDTH/8*res.HEIGHT)
+	var img = make([]byte, dim.WIDTH/8*dim.HEIGHT)
 	for i := range img {
 		img[i] = byte(rand.Int())
 	}
 	SendData(img...)
 }
 
-func SetFrame(img []byte, x, y, imgWidth, imgHeight int) {
+func SetFrame(img []byte, x, y, imgWidth, imgHeight uint) {
 	var (
-		xEnd int
-		yEnd int
+		xEnd uint
+		yEnd uint
 	)
 
-	if len(img) == 0 || x < 0 || imgWidth < 0 || y < 0 || imgHeight < 0 {
+	if len(img) < int(imgHeight*imgWidth/8) {
 		return
 	}
 	/* x point must be the multiple of 8 or the last 3 bits will be ignored */
 	x &= 0xF8 // 11111000
 	imgWidth &= 0xF8
-	if x+imgWidth >= res.WIDTH {
-		xEnd = res.WIDTH - 1
+	if x+imgWidth >= dim.WIDTH {
+		xEnd = dim.WIDTH - 1
 	} else {
 		xEnd = x + imgWidth - 1
 	}
-	if y+imgHeight >= res.HEIGHT {
-		yEnd = res.HEIGHT - 1
+	if y+imgHeight >= dim.HEIGHT {
+		yEnd = dim.HEIGHT - 1
 	} else {
 		yEnd = y + imgHeight - 1
 	}
 	SetMemoryArea(x, y, xEnd, yEnd)
 	SetMemoryPointer(x, y)
 	SendCommand(cmd.WRITE_RAM)
-	/* send the img data */
-	for j := 0; y < yEnd; j++ {
-		x = 0
-		for i := 0; x < xEnd; i++ {
-			SendData(img[i+j*(imgWidth/8)])
-			x += 8
-		}
-		y++
+	/* send the img data, line by line */
+	for len(img) > 0 && len(img) > int(imgWidth*(y+imgHeight-dim.HEIGHT)/8) {
+		SendData(img[:(xEnd-x+1)/8]...)
+		img = img[(imgWidth / 8):] // next line
 	}
 }
 
@@ -177,7 +173,7 @@ func DisplayFrame() {
 	WaitUntilIdle()
 }
 
-func SetMemoryArea(x_start, y_start, x_end, y_end int) {
+func SetMemoryArea(x_start, y_start, x_end, y_end uint) {
 	SendCommand(cmd.SET_RAM_X_ADDRESS_START_END_POSITION)
 	/* x point must be the multiple of 8 or the last 3 bits will be ignored */
 	SendData(byte(x_start >> 3))
@@ -190,7 +186,7 @@ func SetMemoryArea(x_start, y_start, x_end, y_end int) {
 	WaitUntilIdle()
 }
 
-func SetMemoryPointer(x, y int) {
+func SetMemoryPointer(x, y uint) {
 	SendCommand(cmd.SET_RAM_X_ADDRESS_COUNTER)
 	/* x point must be the multiple of 8 or the last 3 bits will be ignored */
 	SendData(byte(x >> 3))

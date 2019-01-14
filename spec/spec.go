@@ -1,8 +1,10 @@
-package model
+// This is abstract definition of epaper specification
+// Each specific epaper model should export variable of type Module
+package spec
 
-type Model struct {
+type Module struct {
 	Ink
-	Res
+	Dim
 	Lut
 	Cmd
 }
@@ -12,9 +14,9 @@ type Ink struct {
 	UNCOLORED byte
 }
 
-type Res struct {
-	WIDTH  int
-	HEIGHT int
+type Dim struct {
+	WIDTH  uint
+	HEIGHT uint
 }
 
 type Lut struct {

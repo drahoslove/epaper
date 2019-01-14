@@ -10,20 +10,21 @@ import (
 	"testing"
 	"time"
 
-	model "github.com/drahoslav7/epaper/2in9"
+	epd "github.com/drahoslav7/epaper/2in9"
 )
 
 func TestReset(t *testing.T) {
 	displayBitmap := func(bitmap []byte) {
-		width := int(bitmap[0])<<8 + int(bitmap[1])
-		height := int(bitmap[2])<<8 + int(bitmap[3])
+		width := uint(bitmap[0])<<8 + uint(bitmap[1])
+		height := uint(bitmap[2])<<8 + uint(bitmap[3])
 
 		SetFrame(bitmap[4:], 0, 0, width, height)
-		// SetFrame(bitmap, 0, 0, model.Spec.Res.WIDTH, model.Spec.Res.HEIGHT)
 		DisplayFrame()
+
+		// SetFrame(bitmap, 0, 0, model.Spec.Res.WIDTH, model.Spec.Res.HEIGHT)
 	}
 
-	Use(model.Spec)
+	Use(epd.Module)
 
 	filename := os.Getenv("FILE")
 	mode := os.Getenv("MODE")

@@ -7,30 +7,30 @@
 package model2in9
 
 import (
-	"github.com/drahoslav7/epaper/model"
+	"github.com/drahoslav7/epaper/spec"
 )
 
-var Spec = model.Model{
-	ink,
-	resolution,
+var Module = spec.Module{
+	Ink,
+	Dimension,
 	lut,
 	command,
 }
 
 // Colors
-var ink = model.Ink{
+var Ink = spec.Ink{
 	byte(0),
 	^byte(0),
 }
 
-// Display resolution
-var resolution = model.Res{
+// Display dimension
+var Dimension = spec.Dim{
 	128,
 	296,
 }
 
 // commands
-var command = model.Cmd{
+var command = spec.Cmd{
 	DRIVER_OUTPUT_CONTROL:                0x01,
 	BOOSTER_SOFT_START_CONTROL:           0x0C,
 	GATE_SCAN_START_POSITION:             0x0F,
@@ -54,7 +54,7 @@ var command = model.Cmd{
 	TERMINATE_FRAME_READ_WRITE:           0xFF,
 }
 
-var lut = model.Lut{
+var lut = spec.Lut{
 	FULL: []byte{
 		0x02, 0x02, 0x01, 0x11, 0x12, 0x12, 0x22, 0x22,
 		0x66, 0x69, 0x69, 0x59, 0x58, 0x99, 0x99, 0x88,
