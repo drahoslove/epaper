@@ -76,7 +76,7 @@ func (m *Mono) ColorModel() color.Model {
 }
 
 func (m *Mono) Clear() {
-	*m = append([]byte(*m)[4:], bytes.Repeat([]byte{0}, len(*m)-4)...)
+	*m = append([]byte(*m)[4:], bytes.Repeat([]byte{255}, len(*m)-4)...)
 }
 
 func (m *Mono) DrawHorizontalLine(y, x_start, x_end int) {
