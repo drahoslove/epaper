@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gomono"
+	"golang.org/x/image/font/gofont/gobold"
 	"golang.org/x/image/math/fixed"
 	"image"
 	"image/color"
@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	goFont, _ = truetype.Parse(gomono.TTF)
+	goFont, _ = truetype.Parse(gobold.TTF)
 }
 
 // Mono implements image.Image and image/draw.Image
@@ -46,12 +46,16 @@ func (m Mono) Set(x, y int, c color.Color) {
 	}
 	i := uint(x) + uint(y)*m.Width()
 	r, _, _, _ := c.RGBA()
-	m[4:][i/8] |= byte(r) & (1 << (7 - i%8)) // i >> 3 means Math.floor(i/(8))
+	if r == 0 {
+		m[4+i/8] &^= (1 << (7 - i%8)) // clr
+	} else {
+		m[4+i/8] |= (1 << (7 - i%8)) // set
+	}
 }
 
 func (m Mono) At(x, y int) color.Color {
 	i := uint(x) + uint(y)*m.Width()
-	r := m[4:][i/8] & (1 << (7 - i%8))
+	r := m[4+i/8] & (1 << (7 - i%8))
 	if r == 0 {
 		return color.Black
 	} else {
@@ -75,8 +79,9 @@ func (m *Mono) ColorModel() color.Model {
 	})
 }
 
-func (m *Mono) Clear() {
-	*m = append([]byte(*m)[4:], bytes.Repeat([]byte{255}, len(*m)-4)...)
+func (m *Mono) Clear(c color.Color) {
+	Y, _, _, _ := c.RGBA()
+	*m = append([]byte(*m)[:4], bytes.Repeat([]byte{byte(Y)}, len(*m)-4)...)
 }
 
 func (m *Mono) DrawHorizontalLine(y, x_start, x_end int) {
@@ -104,16 +109,72 @@ func (m *Mono) FillRect(x_start, y_start, x_end, y_end int) {
 	}
 }
 
-func (m *Mono) DrawString(s string, size float64, x, y int) {
+func (m *Mono) DrawString(text string, size float64, x, y int) {
 	d := font.Drawer{
 		Dst: m,
 		Src: image.Black,
 		Face: truetype.NewFace(goFont, &truetype.Options{
 			Size:    size,
-			DPI:     72,
-			Hinting: font.HintingNone,
+			Hinting: font.HintingFull,
 		}),
 	}
 	d.Dot = fixed.P(x, y)
-	d.DrawString(s)
+	d.DrawString(text)
+}
+
+func flip(b byte) byte {
+	b = (b&0xF0)>>4 | (b&0x0F)<<4
+	b = (b&0xCC)>>2 | (b&0x33)<<2
+	b = (b&0xAA)>>1 | (b&0x55)<<1
+	return b
+}
+
+func (m *Mono) VerticalFlip() {
+	data := m.Bitmap()
+	w := m.Width() / 8
+	h := m.Height()
+	for y := uint(0); y < h/2; y++ {
+		for i := uint(0); i < w; i++ {
+			data[y*w+i], data[(h-1-y)*w+i] = data[(h-1-y)*w+i], data[y*w+i]
+		}
+	}
+}
+
+func (m *Mono) HorizontalFlip() {
+	data := m.Bitmap()
+	w := m.Width() / 8
+	h := m.Height()
+	for y := uint(0); y < h; y++ {
+		for i := uint(0); i < w/2; i++ {
+			data[y*w+i], data[y*w+w-1-i] = flip(data[y*w+w-1-i]), flip(data[y*w+i])
+		}
+	}
+}
+
+func (m *Mono) RotateRight() {
+	w := m.Width()
+	h := m.Height()
+
+	n := NewMono(h, w)
+
+	for y := 0; y < int(h); y++ {
+		for x := 0; x < int(w); x++ {
+			n.Set(int(h)-1-y, x, m.At(x, y))
+		}
+	}
+	*m = n
+}
+
+func (m *Mono) RotateLeft() {
+	w := m.Width()
+	h := m.Height()
+
+	n := NewMono(h, w)
+
+	for y := 0; y < int(h); y++ {
+		for x := 0; x < int(w); x++ {
+			n.Set(y, int(w)-1-x, m.At(x, y))
+		}
+	}
+	*m = n
 }
