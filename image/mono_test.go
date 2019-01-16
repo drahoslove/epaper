@@ -4,6 +4,7 @@ import (
 	// "fmt"
 	"github.com/drahoslav7/epaper"
 	epd "github.com/drahoslav7/epaper/2in9"
+	"image"
 	"image/color"
 	"testing"
 )
@@ -14,30 +15,49 @@ func TestMono(t *testing.T) {
 
 	epaper.Use(epd.Module)
 	epaper.Init("full")
-	m := NewMono(epd.Dimension.HEIGHT, epd.Dimension.WIDTH)
+	m := NewMono(image.Rect(0, 0, int(epd.Dimension.HEIGHT), int(epd.Dimension.WIDTH)))
 	m.Clear(white)
 	m.Set(1, 1, black)
 	m.Set(1, 2, white)
 	m.Set(1, 3, black)
 	m.Set(1, 4, black)
-	m.StrokeRect(black, 5, 5, 45, 65)
-	m.FillRect(black, 10, 10, 40, 60)
+	rect := image.Rect(5, 5, 45, 65)
+	m.StrokeRect(black, rect)
+	m.FillRect(black, rect.Inset(5))
 
+	size := 36
+	dot := image.Pt(50, 0)
 	for i, s := range []string{"Hello World", "12:59 | 23.5°C"} {
-		size := 38
-		m.DrawString(black, s, float64(size), 50, size*(i+1))
+		dot = dot.Add(image.Pt(0, size))
+		m.DrawString(black, s, float64(size-6*i), dot)
 	}
 
 	// m.HorizontalFlip()
 	// m.VerticalFlip()
 	m.RotateRight()
 
-	for i, n := 0, 2; i < 10; i, n = i+1, n+n/2 {
-		m.DrawHorizontalLine(black, n+50, 3*i, 50-3*i)
+	start := image.Pt(0, 50)
+	length := 50
+	for n := 2; length > 0; n += n / 2 {
+		m.DrawHorizontalLine(black, start, length)
+		start = start.Add(image.Pt(3, n))
+		length -= 6
 	}
 
-	m.DrawString(black, "abc", 24, 5, 30)
-	m.DrawString(white, "abc", 24, 70, 30)
+	m.DrawString(black, "abc", 24, image.Pt(5, 30))
+	m.DrawString(white, "abc", 24, image.Pt(70, 30))
+
+	dot = image.Pt(5, 130)
+	for i, s := range []string{"26", "24", "22", "20", "18", "16", "14", "12 - Hello", "10 - Hello", "08 - Hello", "06 - Hello"} {
+		m.DrawString(black, s, float64(26-i*2), dot)
+		dot = dot.Add(image.Pt(0, 25-2*i))
+	}
+
+	center := m.Bounds().Inset(7).Size() // 14 px from bottom right corner
+	m.FillCircle(black, center, 11)
+	m.StrokeCircle(white, center, 10)
+	m.StrokeCircle(white, center, 3)
+	m.Set(center.X, center.Y, white)
 
 	m.Invert()
 

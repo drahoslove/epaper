@@ -32,7 +32,8 @@ func init() {
 // It implements image.Image and image/draw.Image interface
 type Mono []byte
 
-func NewMono(width, height uint) Mono {
+func NewMono(rect image.Rectangle) Mono {
+	width, height := rect.Size().X, rect.Size().Y
 	bitmap := make([]byte, width*height/8+4)
 	bitmap[0], bitmap[1] = byte(width>>8), byte(width)
 	bitmap[2], bitmap[3] = byte(height>>8), byte(height)
@@ -110,36 +111,88 @@ func (m *Mono) Clear(c color.Color) {
 	}
 }
 
-// DrawHorizontalLine draws horizontal line at given coordinates
-func (m *Mono) DrawHorizontalLine(color color.Color, y, x_start, x_end int) {
-	for x := x_start; x < x_end; x++ {
-		m.Set(x, y, color)
+// DrawHorizontalLine draws horizontal line given by left most point and length
+func (m *Mono) DrawHorizontalLine(color color.Color, start image.Point, length int) {
+	for x := start.X; x < start.X+length; x++ {
+		m.Set(x, start.Y, color)
 	}
 }
 
-// DrawHorizontalLine draws vettical line at given coordinates
-func (m *Mono) DrawVerticalLine(color color.Color, x, y_start, y_end int) {
-	for y := y_start; y < y_end; y++ {
-		m.Set(x, y, color)
+// DrawHorizontalLine draws vettical line given by top most point and length
+func (m *Mono) DrawVerticalLine(color color.Color, start image.Point, length int) {
+	for y := start.Y; y < start.Y+length; y++ {
+		m.Set(start.X, y, color)
 	}
 }
 
-// StrokeRect draws outline of rectangle given coord of two oposite corners
-func (m *Mono) StrokeRect(color color.Color, x_start, y_start, x_end, y_end int) {
-	m.DrawHorizontalLine(color, y_start, x_start, x_end)
-	m.DrawHorizontalLine(color, y_end, x_start, x_end)
-	m.DrawVerticalLine(color, x_start, y_start, y_end)
-	m.DrawVerticalLine(color, x_end, y_start, y_end)
+// StrokeRect draws outline of rectangle
+func (m *Mono) StrokeRect(color color.Color, rect image.Rectangle) {
+	w, h := rect.Dx(), rect.Dy()
+	m.DrawHorizontalLine(color, rect.Min, w)
+	m.DrawHorizontalLine(color, rect.Min.Add(image.Pt(0, h)), w)
+	m.DrawVerticalLine(color, rect.Min, h)
+	m.DrawVerticalLine(color, rect.Min.Add(image.Pt(w, 0)), h)
 }
 
-// StrokeRect draws filled rectangle given coord of two oposite corners
-func (m *Mono) FillRect(color color.Color, x_start, y_start, x_end, y_end int) {
-	for y := y_start; y < y_end; y++ {
-		m.DrawHorizontalLine(color, y, x_start, x_end)
+// StrokeRect draws filled rectangle
+func (m *Mono) FillRect(color color.Color, rect image.Rectangle) {
+	w := rect.Dx()
+	down := image.Pt(0, 1)
+	for start := rect.Min; start.Y < rect.Max.Y; start = start.Add(down) {
+		m.DrawHorizontalLine(color, start, w)
 	}
 }
 
-func (m *Mono) DrawString(color color.Color, text string, size float64, x, y int) {
+// StrokeCircle draws outline of circle given by center point and raidus.
+//
+// Center is the coords of pixel in center - circle with radius 3 will be 5 px wide.
+func (m *Mono) StrokeCircle(color color.Color, center image.Point, radius int) {
+	x := radius - 1
+	y := 0
+	dx := 1
+	dy := 1
+	err := dx - (radius << 1)
+
+	for x >= y {
+		m.Set(center.X+x, center.Y+y, color)
+		m.Set(center.X+y, center.Y+x, color)
+		m.Set(center.X-y, center.Y+x, color)
+		m.Set(center.X-x, center.Y+y, color)
+		m.Set(center.X-x, center.Y-y, color)
+		m.Set(center.X-y, center.Y-x, color)
+		m.Set(center.X+y, center.Y-x, color)
+		m.Set(center.X+x, center.Y-y, color)
+
+		if err <= 0 {
+			y++
+			err += dy
+			dy += 2
+		}
+		if err > 0 {
+			x--
+			dx += 2
+			err += dx - (radius << 1)
+		}
+	}
+}
+
+// FillCircle draws filled circle given by center point and radius.
+//
+// Center is the coords of pixel in center - circle with radius 3 will be 5 px wide.
+func (m *Mono) FillCircle(color color.Color, center image.Point, radius int) {
+	for x := 0; x < radius; x++ {
+		for y := 0; y < radius; y++ {
+			if x*x+y*y <= radius*radius {
+				m.Set(center.X+x, center.Y+y, color)
+				m.Set(center.X-x, center.Y+y, color)
+				m.Set(center.X+x, center.Y-y, color)
+				m.Set(center.X-x, center.Y-y, color)
+			}
+		}
+	}
+}
+
+func (m *Mono) DrawString(color color.Color, text string, size float64, dot image.Point) {
 	d := font.Drawer{
 		Dst: m,
 		Src: image.NewUniform(color),
@@ -148,7 +201,7 @@ func (m *Mono) DrawString(color color.Color, text string, size float64, x, y int
 			Hinting: font.HintingFull,
 		}),
 	}
-	d.Dot = fixed.P(x, y)
+	d.Dot = fixed.P(dot.X, dot.Y)
 	d.DrawString(text)
 }
 
@@ -193,7 +246,7 @@ func (m *Mono) RotateRight() {
 	w := m.Width()
 	h := m.Height()
 
-	n := NewMono(h, w)
+	n := NewMono(image.Rect(0, 0, int(h), int(w)))
 
 	for y := 0; y < int(h); y++ {
 		for x := 0; x < int(w); x++ {
@@ -210,7 +263,7 @@ func (m *Mono) RotateLeft() {
 	w := m.Width()
 	h := m.Height()
 
-	n := NewMono(h, w)
+	n := NewMono(image.Rect(0, 0, int(h), int(w)))
 
 	for y := 0; y < int(h); y++ {
 		for x := 0; x < int(w); x++ {
