@@ -7,7 +7,7 @@
 package model2in9
 
 import (
-	"github.com/drahoslav7/epaper/spec"
+	"github.com/drahoslove/epaper/spec"
 )
 
 var Module = spec.Module{

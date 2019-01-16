@@ -1,9 +1,11 @@
+// Run by:
+// go test -c -o test -v github.com/drahoslove/epaper/image && sudo ./test -test.v
 package image
 
 import (
 	// "fmt"
-	"github.com/drahoslav7/epaper"
-	epd "github.com/drahoslav7/epaper/2in9"
+	"github.com/drahoslove/epaper"
+	epd "github.com/drahoslove/epaper/2in9"
 	"image"
 	"image/color"
 	"testing"

@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/drahoslav7/epaper"
-	epd "github.com/drahoslav7/epaper/2in9"
+	"github.com/drahoslove/epaper"
+	epd "github.com/drahoslove/epaper/2in9"
 )
 
 func main() {

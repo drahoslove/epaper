@@ -3,7 +3,7 @@ package epaper
 import (
 	"bytes"
 	"fmt"
-	"github.com/drahoslav7/epaper/spec"
+	"github.com/drahoslove/epaper/spec"
 	"github.com/stianeikeland/go-rpio"
 	"math/rand"
 	"os"

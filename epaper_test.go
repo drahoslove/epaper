@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	epd "github.com/drahoslav7/epaper/2in9"
+	epd "github.com/drahoslove/epaper/2in9"
 )
 
 func TestReset(t *testing.T) {
