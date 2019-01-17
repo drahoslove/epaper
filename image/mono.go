@@ -86,7 +86,7 @@ func (m Mono) At(x, y int) color.Color {
 // Bounds returns Rectangle bounding the image.
 //
 // Implements image.Image interface.
-func (m *Mono) Bounds() image.Rectangle {
+func (m Mono) Bounds() image.Rectangle {
 	return image.Rect(0, 0, int(m.Width()), int(m.Height()))
 }
 
@@ -95,7 +95,7 @@ func (m *Mono) Bounds() image.Rectangle {
 // Basic fixed tresholding method is used.
 //
 // Implement image.Image interface.
-func (m *Mono) ColorModel() color.Model {
+func (m Mono) ColorModel() color.Model {
 	return colorModel
 }
 

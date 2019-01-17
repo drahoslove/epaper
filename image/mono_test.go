@@ -8,7 +8,9 @@ import (
 	epd "github.com/drahoslove/epaper/2in9"
 	"image"
 	"image/color"
+	"image/png"
 	"testing"
+	"os"
 )
 
 func TestMono(t *testing.T) {
@@ -64,6 +66,13 @@ func TestMono(t *testing.T) {
 
 	m.Invert()
 
+	// show bitmap on display
 	epaper.SetFrame(m.Bitmap(), 0, 0, m.Width(), m.Height())
 	epaper.DisplayFrame()
+
+	// save bitmap to png file
+
+	f, _ := os.Create("image.png")
+	png.Encode(f, m)
+	f.Close()
 }
