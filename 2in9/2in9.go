@@ -7,8 +7,13 @@
 package model2in9
 
 import (
+	"github.com/drahoslove/epaper"
 	"github.com/drahoslove/epaper/spec"
 )
+
+func init() {
+	epaper.Use(Module)	
+}
 
 var Module = spec.Module{
 	Ink,

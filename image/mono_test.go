@@ -15,7 +15,8 @@ func TestMono(t *testing.T) {
 	black := color.Black
 	white := color.White
 
-	epaper.Use(epd.Module)
+	epaper.Setup()
+	defer epaper.Teardown()
 	epaper.Init("full")
 	m := NewMono(image.Rect(0, 0, int(epd.Dimension.HEIGHT), int(epd.Dimension.WIDTH)))
 	m.Clear(white)
@@ -55,9 +56,9 @@ func TestMono(t *testing.T) {
 		dot = dot.Add(image.Pt(0, 25-2*i))
 	}
 
-	center := m.Bounds().Inset(7).Size() // 14 px from bottom right corner
+	center := m.Bounds().Inset(11).Size() // 21 px from bottom right corner
 	m.FillCircle(black, center, 11)
-	m.StrokeCircle(white, center, 10)
+	m.StrokeCircle(black, center, 16)
 	m.StrokeCircle(white, center, 3)
 	m.Set(center.X, center.Y, white)
 

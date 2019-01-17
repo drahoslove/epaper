@@ -47,12 +47,12 @@ func (m Mono) Bitmap() []byte {
 
 // Width returns widht of image
 func (m Mono) Width() uint {
-	return uint(m[0])<<8 + uint(m[1])
+	return uint(m[0])<<8 | uint(m[1])
 }
 
 // Height return height of image
 func (m Mono) Height() uint {
-	return uint(m[2])<<8 + uint(m[3])
+	return uint(m[2])<<8 | uint(m[3])
 }
 
 // Set sets color on given coordinates.
@@ -60,9 +60,6 @@ func (m Mono) Height() uint {
 //
 // Implements image/draw.Image interface.
 func (m Mono) Set(x, y int, c color.Color) {
-	if x < 0 || y < 0 || x >= int(m.Width()) || y >= int(m.Height()) {
-		return
-	}
 	i := uint(x) + uint(y)*m.Width()
 	Y := colorModel.Convert(c).(color.Gray16).Y
 	if Y == 0 {

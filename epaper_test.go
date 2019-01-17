@@ -1,4 +1,4 @@
-package epaper
+package epaper_test
 
 // sudo GOPATH=/home/pi/go /usr/local/go/bin/go test -v
 
@@ -10,7 +10,8 @@ import (
 	"testing"
 	"time"
 
-	epd "github.com/drahoslove/epaper/2in9"
+	"github.com/drahoslove/epaper"
+	_ "github.com/drahoslove/epaper/2in9" // will be used automatically
 )
 
 func TestReset(t *testing.T) {
@@ -18,19 +19,20 @@ func TestReset(t *testing.T) {
 		width := uint(bitmap[0])<<8 + uint(bitmap[1])
 		height := uint(bitmap[2])<<8 + uint(bitmap[3])
 
-		SetFrame(bitmap[4:], 0, 0, width, height)
-		DisplayFrame()
+		epaper.SetFrame(bitmap[4:], 0, 0, width, height)
+		epaper.DisplayFrame()
 
 		// SetFrame(bitmap, 0, 0, model.Spec.Res.WIDTH, model.Spec.Res.HEIGHT)
 	}
 
-	Use(epd.Module)
+	epaper.Setup()
+	defer epaper.Teardown()
 
 	filename := os.Getenv("FILE")
 	mode := os.Getenv("MODE")
 	port := os.Getenv("SERVE")
 
-	Init(mode)
+	epaper.Init(mode)
 
 	println("FILE", filename)
 	println("MODE", mode)
@@ -48,14 +50,14 @@ func TestReset(t *testing.T) {
 		lock := make(chan bool, 1)
 		http.HandleFunc("/epd/full", func(w http.ResponseWriter, r *http.Request) {
 			lock <- true
-			Init("full")
+			epaper.Init("full")
 			bodyContent, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				println(err)
 			}
 			displayBitmap(bodyContent)
 			w.Header().Add("Access-Control-Allow-Origin", "*")
-			Init("partial")
+			epaper.Init("partial")
 			<-lock
 		})
 		http.HandleFunc("/epd/partial", func(w http.ResponseWriter, r *http.Request) {
@@ -75,8 +77,8 @@ func TestReset(t *testing.T) {
 		time.Sleep(time.Second)
 
 		for {
-			RandomizeFrame()
-			DisplayFrame()
+			epaper.RandomizeFrame()
+			epaper.DisplayFrame()
 
 			time.Sleep(time.Second)
 		}
@@ -85,12 +87,12 @@ func TestReset(t *testing.T) {
 	if os.Getenv("BLINK") != "" {
 		tick := time.Tick(time.Millisecond * 300)
 		for {
-			ClearFrame(ink.UNCOLORED)
-			DisplayFrame()
+			epaper.ClearFrame(0xFF)
+			epaper.DisplayFrame()
 			fmt.Println(<-tick)
 
-			ClearFrame(ink.COLORED)
-			DisplayFrame()
+			epaper.ClearFrame(0x00)
+			epaper.DisplayFrame()
 			fmt.Println(<-tick)
 		}
 	}

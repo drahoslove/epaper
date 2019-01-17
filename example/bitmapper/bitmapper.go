@@ -12,6 +12,9 @@ import (
 )
 
 func main() {
+	epaper.Setup()
+	defer epaper.Teardown()
+
 	displayBitmap := func(bitmap []byte) {
 		width := uint(bitmap[0])<<8 + uint(bitmap[1])
 		height := uint(bitmap[2])<<8 + uint(bitmap[3])
@@ -19,8 +22,6 @@ func main() {
 		epaper.SetFrame(bitmap[4:], 0, 0, width, height)
 		epaper.DisplayFrame()
 	}
-
-	epaper.Use(epd.Module)
 
 	filename := flag.String("file", "", "bitmap file to show")
 	mode := flag.String("mode", "full", "refresh mode 'full' or 'partial'")

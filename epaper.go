@@ -16,8 +16,8 @@ const (
 	busyPin  = rpio.Pin(24) // IN  0 = busy
 )
 
-// init interface
-func init() {
+// setup gpio and SPI interface
+func Setup() {
 	err := rpio.Open()
 	if err != nil {
 		fmt.Print(err)
@@ -41,6 +41,12 @@ func init() {
 		fmt.Print(err)
 		os.Exit(2)
 	}
+}
+
+// teardown gpio and SPI interface
+func Teardown() {
+	rpio.SpiEnd(rpio.Spi0)
+	rpio.Close()
 }
 
 var (
