@@ -1,7 +1,7 @@
 # epaper
-Driver for Waveshare Electronics e-paper display - in Go
+Driver of Waveshare Electronics e-paper display for Raspberry Pi - in Go lang
 
-**Work in progress** - Only 2.9" Waveshare Electronics BW display supported now.
+**Work in progress** - Only 2.9" Waveshare Electronics BW display supported for now.
 
 ### What it can do (so far)
 
@@ -10,7 +10,7 @@ package `epaper` (comunicates with display over SPI):
   - Initialize e-paper display to use either `full` or `partial` update
   - Swap frame buffer of e-paper display
   - Clear frame buffer using black / or white color
-  - Copy arbitraty monochromatic bitmap image to frame buffer
+  - Display arbitraty monochromatic bitmap image
   - Put display to Sleep
   
 package `epaper/image` (creates in-memmory monochromatic bitmap `image.Mono`):
@@ -24,4 +24,19 @@ package `epaper/image` (creates in-memmory monochromatic bitmap `image.Mono`):
   - **Flip** (mirror) bitmap vertically or horizontally
   - **Invert** colors
   
-<img src="photo.jpg" height="296"/><img src="image.png" height="296"/>
+<img src="/../images/photo.jpg" height="296"/><img src="/../images/image.png" height="296"/>
+
+### Wiring 
+
+| e-paper | Raspberry Pi |
+|---------|--------------|
+| 3.3V    | 3v3          |
+| GND     | Ground       |
+| DIN     | MOSI (BCM 10)|
+| CLK     | SCLK (BCM 11)|
+| CS      | CE0 (BCM 8)  |
+| CD      | BCM 25       |
+| RST     | BCM 22       |
+| BUSY    | BCM 24       |             
+
+Note that RST is on BCM 22 instead of BCM 17 as in https://pinout.xyz/pinout/213_inch_e_paper_phat - the rest is the same.
