@@ -19,10 +19,8 @@ func TestReset(t *testing.T) {
 		width := uint(bitmap[0])<<8 + uint(bitmap[1])
 		height := uint(bitmap[2])<<8 + uint(bitmap[3])
 
-		epaper.SetFrame(bitmap[4:], 0, 0, width, height)
-		epaper.DisplayFrame()
-
-		// SetFrame(bitmap, 0, 0, model.Spec.Res.WIDTH, model.Spec.Res.HEIGHT)
+		epaper.Display(bitmap[4:], 0, 0, width, height)
+		// Display(bitmap, 0, 0, model.Spec.Res.WIDTH, model.Spec.Res.HEIGHT)
 	}
 
 	epaper.Setup()
@@ -77,8 +75,7 @@ func TestReset(t *testing.T) {
 		time.Sleep(time.Second)
 
 		for {
-			epaper.RandomizeFrame()
-			epaper.DisplayFrame()
+			epaper.Randomize()
 
 			time.Sleep(time.Second)
 		}
@@ -87,12 +84,10 @@ func TestReset(t *testing.T) {
 	if os.Getenv("BLINK") != "" {
 		tick := time.Tick(time.Millisecond * 300)
 		for {
-			epaper.ClearFrame(0xFF)
-			epaper.DisplayFrame()
+			epaper.Clear(0xFF)
 			fmt.Println(<-tick)
 
-			epaper.ClearFrame(0x00)
-			epaper.DisplayFrame()
+			epaper.Clear(0x00)
 			fmt.Println(<-tick)
 		}
 	}

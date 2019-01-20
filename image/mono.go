@@ -7,6 +7,7 @@ import (
 	"golang.org/x/image/math/fixed"
 	"image"
 	"image/color"
+	"math/bits"
 )
 
 var (
@@ -34,7 +35,12 @@ type Mono []byte
 
 func NewMono(rect image.Rectangle) Mono {
 	width, height := rect.Size().X, rect.Size().Y
-	bitmap := make([]byte, width*height/8+4)
+	h := height
+	w := width / 8
+	if width%8 > 0 {
+		w++
+	}
+	bitmap := make([]byte, (w*h + 4))
 	bitmap[0], bitmap[1] = byte(width>>8), byte(width)
 	bitmap[2], bitmap[3] = byte(height>>8), byte(height)
 	return bitmap
@@ -45,7 +51,7 @@ func (m Mono) Bitmap() []byte {
 	return m[4:]
 }
 
-// Width returns widht of image
+// Width returns width of image
 func (m Mono) Width() uint {
 	return uint(m[0])<<8 | uint(m[1])
 }
@@ -60,7 +66,14 @@ func (m Mono) Height() uint {
 //
 // Implements image/draw.Image interface.
 func (m Mono) Set(x, y int, c color.Color) {
-	i := uint(x) + uint(y)*m.Width()
+	if x < 0 || y < 0 || x >= int(m.Width()) || y >= int(m.Height()) {
+		return
+	}
+	w := m.Width()
+	if w%8 > 0 {
+		w += 8 - w%8
+	}
+	i := uint(x) + uint(y)*w
 	Y := colorModel.Convert(c).(color.Gray16).Y
 	if Y == 0 {
 		m[4+i/8] &^= (1 << (7 - i%8)) // clr
@@ -74,7 +87,11 @@ func (m Mono) Set(x, y int, c color.Color) {
 //
 // Implements image.Image iterface.
 func (m Mono) At(x, y int) color.Color {
-	i := uint(x) + uint(y)*m.Width()
+	w := m.Width()
+	if w%8 > 0 {
+		w += 8 - w%8
+	}
+	i := uint(x) + uint(y)*w
 	bit := m[4+i/8] & (1 << (7 - i%8))
 	if bit == 0 {
 		return color.Black
@@ -126,9 +143,9 @@ func (m *Mono) DrawVerticalLine(color color.Color, start image.Point, length int
 func (m *Mono) StrokeRect(color color.Color, rect image.Rectangle) {
 	w, h := rect.Dx(), rect.Dy()
 	m.DrawHorizontalLine(color, rect.Min, w)
-	m.DrawHorizontalLine(color, rect.Min.Add(image.Pt(0, h)), w)
+	m.DrawHorizontalLine(color, rect.Min.Add(image.Pt(0, h)), w+1)
 	m.DrawVerticalLine(color, rect.Min, h)
-	m.DrawVerticalLine(color, rect.Min.Add(image.Pt(w, 0)), h)
+	m.DrawVerticalLine(color, rect.Min.Add(image.Pt(w, 0)), h+1)
 }
 
 // StrokeRect draws filled rectangle
@@ -204,10 +221,10 @@ func (m *Mono) DrawString(color color.Color, text string, size float64, dot imag
 
 // flips order of bits in byte
 func flipByte(b byte) byte {
-	b = (b&0xF0)>>4 | (b&0x0F)<<4
-	b = (b&0xCC)>>2 | (b&0x33)<<2
-	b = (b&0xAA)>>1 | (b&0x55)<<1
-	return b
+	// b = (b&0xF0)>>4 | (b&0x0F)<<4
+	// b = (b&0xCC)>>2 | (b&0x33)<<2
+	// b = (b&0xAA)>>1 | (b&0x55)<<1
+	return bits.Reverse8(b)
 }
 
 // VerticalFlip flips image vertically (along horizontal axe)

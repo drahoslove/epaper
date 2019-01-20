@@ -3,8 +3,8 @@ package epaper
 import (
 	"bytes"
 	"fmt"
-	"github.com/drahoslove/epaper/spec"
 	"github.com/stianeikeland/go-rpio"
+	"math"
 	"math/rand"
 	"os"
 	"time"
@@ -27,6 +27,7 @@ func Setup() {
 	resetPin.Output()
 	dcPin.Output()
 	busyPin.Input()
+	busyPin.PullDown()
 
 	resetPin.High()
 
@@ -50,13 +51,13 @@ func Teardown() {
 }
 
 var (
-	lut spec.Lut
-	cmd spec.Cmd
-	dim spec.Dim
-	ink spec.Ink
+	lut Lut
+	cmd Cmd
+	dim Dim
+	ink Ink
 ) // global vars holding used values, fill in with Use
 
-func Use(e spec.Module) {
+func Use(e Module) {
 	lut = e.Lut
 	cmd = e.Cmd
 	dim = e.Dim
@@ -118,60 +119,74 @@ func SetLut(lut []byte) {
 	SendData(lut...)
 }
 
-func ClearFrame(color byte) {
-	SetMemoryArea(0, 0, dim.WIDTH-1, dim.HEIGHT-1)
+func Clear(color byte) {
+	h := dim.HEIGHT
+	w := dim.WIDTH
+	SetMemoryArea(0, 0, w-1, h-1)
 	SetMemoryPointer(0, 0)
 	SendCommand(cmd.WRITE_RAM)
 	/* send the color data */
-	var img = bytes.Repeat([]byte{color}, int(dim.WIDTH/8*dim.HEIGHT))
+	var img = bytes.Repeat([]byte{color}, int(inBytes(w)*h))
 	SendData(img...)
+	SwapFrame()
 }
 
-func RandomizeFrame() {
-	SetMemoryArea(0, 0, dim.WIDTH-1, dim.HEIGHT-1)
+func Randomize() {
+	h := dim.HEIGHT
+	w := dim.WIDTH
+	SetMemoryArea(0, 0, w-1, h-1)
 	SetMemoryPointer(0, 0)
 	SendCommand(cmd.WRITE_RAM)
 	/* send the color data */
-	var img = make([]byte, dim.WIDTH/8*dim.HEIGHT)
+	var img = make([]byte, int(inBytes(w)*h))
 	for i := range img {
 		img[i] = byte(rand.Int())
 	}
 	SendData(img...)
+	SwapFrame()
 }
 
-func SetFrame(img []byte, x, y, imgWidth, imgHeight uint) {
-	var (
-		xEnd uint
-		yEnd uint
-	)
-
-	if len(img) < int(imgHeight*imgWidth/8) {
+// Will display bitmap
+// if image is larger, it will be cropped
+func Display(img []byte, x, y int, imgWidth, imgHeight uint) {
+	if len(img) < int(imgHeight*inBytes(imgWidth)) {
+		fmt.Print("bitmap too small")
 		return
 	}
 	/* x point must be the multiple of 8 or the last 3 bits will be ignored */
-	x &= 0xF8 // 11111000
-	imgWidth &= 0xF8
-	if x+imgWidth >= dim.WIDTH {
-		xEnd = dim.WIDTH - 1
-	} else {
-		xEnd = x + imgWidth - 1
-	}
-	if y+imgHeight >= dim.HEIGHT {
-		yEnd = dim.HEIGHT - 1
-	} else {
-		yEnd = y + imgHeight - 1
-	}
-	SetMemoryArea(x, y, xEnd, yEnd)
-	SetMemoryPointer(x, y)
+	xEnd := uint(math.Min(
+		float64(x+int(imgWidth-1)),
+		float64(dim.WIDTH-1)),
+	)
+	yEnd := uint(math.Min(
+		float64(y+int(imgHeight-1)),
+		float64(dim.HEIGHT-1)),
+	)
+	xStart := uint(math.Max(float64(x), 0))
+	yStart := uint(math.Max(float64(y), 0))
+
+	SetMemoryArea(xStart, yStart, xEnd, yEnd)
+	SetMemoryPointer(xStart, yStart)
 	SendCommand(cmd.WRITE_RAM)
 	/* send the img data, line by line */
-	for len(img) > 0 && len(img) > int(imgWidth*(y+imgHeight-dim.HEIGHT)/8) {
-		SendData(img[:(xEnd-x+1)/8]...)
-		img = img[(imgWidth / 8):] // next line
+	rowsToCrop := (yStart + imgHeight - dim.HEIGHT)
+	if y < 0 { // crop top
+		img = img[inBytes(imgWidth)*uint(-y):]
+		rowsToCrop -= uint(-y)
 	}
+	for len(img) > 0 && len(img) > int(inBytes(imgWidth)*rowsToCrop) {
+		if x >= 0 {
+			SendData(img[0:inBytes(xEnd-xStart)]...)
+		} else { // crop left part
+			SendData(img[inBytes(uint(-x)):inBytes(xEnd+uint(-x))]...)
+		}
+		img = img[inBytes(imgWidth):] // next line
+	}
+	SwapFrame()
 }
 
-func DisplayFrame() {
+// Will swap back frame with front frame and displays what's on it
+func SwapFrame() {
 	SendCommand(cmd.DISPLAY_UPDATE_CONTROL_2)
 	SendData(0xC4)
 	SendCommand(cmd.MASTER_ACTIVATION)
@@ -205,5 +220,14 @@ func SetMemoryPointer(x, y uint) {
 func Sleep() {
 	SendCommand(cmd.DEEP_SLEEP_MODE)
 	SendData(1)
-	WaitUntilIdle()
+	// WaitUntilIdle()
+}
+
+// division by eight but round up
+func inBytes(n uint) uint {
+	if n%8 == 0 {
+		return n / 8
+	} else {
+		return n/8 + 1
+	}
 }

@@ -9,8 +9,8 @@ import (
 	"image"
 	"image/color"
 	"image/png"
-	"testing"
 	"os"
+	"testing"
 )
 
 func TestMono(t *testing.T) {
@@ -67,8 +67,7 @@ func TestMono(t *testing.T) {
 	m.Invert()
 
 	// show bitmap on display
-	epaper.SetFrame(m.Bitmap(), 0, 0, m.Width(), m.Height())
-	epaper.DisplayFrame()
+	epaper.Display(m.Bitmap(), 0, 0, m.Width(), m.Height())
 
 	// save bitmap to png file
 

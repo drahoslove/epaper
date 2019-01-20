@@ -9,18 +9,15 @@ import (
 
 	"github.com/drahoslove/epaper"
 	epd "github.com/drahoslove/epaper/2in9"
+	"github.com/drahoslove/epaper/image"
 )
 
 func main() {
 	epaper.Setup()
 	defer epaper.Teardown()
 
-	displayBitmap := func(bitmap []byte) {
-		width := uint(bitmap[0])<<8 + uint(bitmap[1])
-		height := uint(bitmap[2])<<8 + uint(bitmap[3])
-
-		epaper.SetFrame(bitmap[4:], 0, 0, width, height)
-		epaper.DisplayFrame()
+	displayBitmap := func(m image.Mono) {
+		epaper.Display(m.Bitmap(), 0, 0, m.Width(), m.Height())
 	}
 
 	filename := flag.String("file", "", "bitmap file to show")
@@ -37,8 +34,7 @@ func main() {
 	println("SERVE", *port)
 
 	if *clr {
-		epaper.ClearFrame(epd.Ink.UNCOLORED)
-		epaper.DisplayFrame()
+		epaper.Clear(epd.Ink.UNCOLORED)
 	}
 
 	if *filename != "" {

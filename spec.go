@@ -1,6 +1,6 @@
 // This is abstract definition of epaper specification
 // Each specific epaper model should export variable of type Module
-package spec
+package epaper
 
 type Module struct {
 	Ink
