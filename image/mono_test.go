@@ -13,13 +13,18 @@ import (
 	"testing"
 )
 
+var (
+	black = color.Black
+	white = color.White
+)
+
 func TestMono(t *testing.T) {
-	black := color.Black
-	white := color.White
 
 	epaper.Setup()
 	defer epaper.Teardown()
 	epaper.Init("full")
+	defer epaper.Sleep()
+
 	m := NewMono(image.Rect(0, 0, int(epd.Dimension.HEIGHT), int(epd.Dimension.WIDTH)))
 	m.Clear(white)
 	m.Set(1, 1, black)
@@ -74,4 +79,58 @@ func TestMono(t *testing.T) {
 	f, _ := os.Create("image.png")
 	png.Encode(f, m)
 	f.Close()
+}
+
+func TestLines(t *testing.T) {
+	epaper.Setup()
+	defer epaper.Teardown()
+	epaper.Init("full")
+	defer epaper.Sleep()
+
+	irect := image.Rect(0, 0, int(epd.Dimension.HEIGHT), int(epd.Dimension.WIDTH))
+	img := NewMono(irect)
+	img.Clear(image.White)
+	img.FillRect(image.Black, irect)
+	img.StrokeRect(image.White, irect.Inset(2))
+
+	center := image.Pt(222, 64)
+	img.DrawLine(color.White, center, center.Add(image.Pt(11, 0)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(11, 5)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(11, 11)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(5, 11)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(0, 11)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(-5, 11)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(-11, 11)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(-11, 5)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(-11, 0)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(-11, -5)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(-11, -11)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(-5, -11)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(0, -11)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(5, -11)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(11, -11)))
+	img.DrawLine(color.White, center, center.Add(image.Pt(11, -5)))
+	img.StrokeRect(color.White, image.Rectangle{
+		center.Sub(image.Pt(12, 12)),
+		center.Add(image.Pt(12, 12)),
+	})
+	center = center.Add(image.Pt(20, 0))
+	for i := 0; i < 10; i++ {
+		img.DrawLine(color.White, center, center.Add(image.Pt(i, 0)))
+		center = center.Add(image.Pt(0, 2))
+	}
+	for i := 0; i < 5; i++ {
+		center = center.Add(image.Pt(0, 6))
+		img.FillRect(color.White, image.Rectangle{
+			center.Add(image.Pt(0, 0)),
+			center.Add(image.Pt(i, i)),
+		})
+		img.StrokeRect(color.White, image.Rectangle{
+			center.Add(image.Pt(6+0, 0)),
+			center.Add(image.Pt(6+i, i)),
+		})
+	}
+	img.RotateRight()
+	epaper.Display(img.Bitmap(), 0, 0, img.Width(), img.Height())
+
 }

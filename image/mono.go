@@ -7,6 +7,7 @@ import (
 	"golang.org/x/image/math/fixed"
 	"image"
 	"image/color"
+	"math"
 	"math/bits"
 )
 
@@ -126,16 +127,78 @@ func (m *Mono) Clear(c color.Color) {
 }
 
 // DrawHorizontalLine draws horizontal line given by left most point and length
+//
+// lengtj is distance between centers of first and last dot:
+// line of len 0 is dot -> line will consists of length+1 dots
 func (m *Mono) DrawHorizontalLine(color color.Color, start image.Point, length int) {
-	for x := start.X; x < start.X+length; x++ {
+	for x := start.X; x <= start.X+length; x++ {
 		m.Set(x, start.Y, color)
 	}
 }
 
 // DrawHorizontalLine draws vettical line given by top most point and length
+//
+// length is distance between centers of first and last dot:
+// line of len 0 is dot -> line will consists of length+1 dots
 func (m *Mono) DrawVerticalLine(color color.Color, start image.Point, length int) {
-	for y := start.Y; y < start.Y+length; y++ {
+	for y := start.Y; y <= start.Y+length; y++ {
 		m.Set(start.X, y, color)
+	}
+}
+
+// Draw arbitrary line
+//
+// line with same start and end is 1 dot
+func (m *Mono) DrawLine(color color.Color, start image.Point, end image.Point) {
+	drawLineLow := func(start, end image.Point) {
+		delta := end.Sub(start)
+		yi := +1
+		if delta.Y < 0 {
+			delta.Y = -delta.Y
+			yi = -1
+		}
+		D := 2*delta.Y - delta.X
+
+		for x, y := start.X, start.Y; x <= start.X+delta.X; x++ {
+			m.Set(x, y, color)
+			if D > 0 {
+				y += yi
+				D -= 2 * delta.X
+			}
+			D += 2 * delta.Y
+		}
+	}
+	drawLineHight := func(start, end image.Point) {
+		delta := end.Sub(start)
+		xi := +1
+		if delta.X < 0 {
+			delta.X = -delta.X
+			xi = -1
+		}
+		D := 2*delta.X - delta.Y
+
+		for y, x := start.Y, start.X; y <= start.Y+delta.Y; y++ {
+			m.Set(x, y, color)
+			if D > 0 {
+				x += xi
+				D -= 2 * delta.Y
+			}
+			D += 2 * delta.X
+		}
+	}
+
+	if math.Abs(float64(end.Y-start.Y)) < math.Abs(float64(end.X-start.X)) {
+		if start.X > end.X {
+			drawLineLow(end, start)
+		} else {
+			drawLineLow(start, end)
+		}
+	} else {
+		if start.Y > end.Y {
+			drawLineHight(end, start)
+		} else {
+			drawLineHight(start, end)
+		}
 	}
 }
 
@@ -143,16 +206,16 @@ func (m *Mono) DrawVerticalLine(color color.Color, start image.Point, length int
 func (m *Mono) StrokeRect(color color.Color, rect image.Rectangle) {
 	w, h := rect.Dx(), rect.Dy()
 	m.DrawHorizontalLine(color, rect.Min, w)
-	m.DrawHorizontalLine(color, rect.Min.Add(image.Pt(0, h)), w+1)
+	m.DrawHorizontalLine(color, rect.Min.Add(image.Pt(0, h)), w)
 	m.DrawVerticalLine(color, rect.Min, h)
-	m.DrawVerticalLine(color, rect.Min.Add(image.Pt(w, 0)), h+1)
+	m.DrawVerticalLine(color, rect.Min.Add(image.Pt(w, 0)), h)
 }
 
 // StrokeRect draws filled rectangle
 func (m *Mono) FillRect(color color.Color, rect image.Rectangle) {
 	w := rect.Dx()
 	down := image.Pt(0, 1)
-	for start := rect.Min; start.Y < rect.Max.Y; start = start.Add(down) {
+	for start := rect.Min; start.Y <= rect.Max.Y; start = start.Add(down) {
 		m.DrawHorizontalLine(color, start, w)
 	}
 }
